@@ -201,6 +201,7 @@ class TransactionCountTest(BaseTest):
 
         min_price = filtered_set[normal_range_start - 1]["price"]
         max_price = filtered_set[normal_range_end - 1]["price"]
+
         bin_width = (max_price - min_price) / (MAX_BIN_COUNT - 1)
         mask_digit = pow(10, DECIMAL_PLACES)
         bin_width = math.ceil(bin_width / mask_digit) * mask_digit
@@ -208,7 +209,10 @@ class TransactionCountTest(BaseTest):
 
         bin_counts = defaultdict(int)
         for item in filtered_set:
-            bin_floor = int(item["price"] / bin_width) * bin_width
+            if item["price"] > max_price:
+                bin_floor = int(max_price / bin_width) * bin_width
+            else:
+                bin_floor = int(item["price"] / bin_width) * bin_width
             bin_counts[bin_floor] += 1
 
         bins = sorted(bin_counts.items(), key=lambda item: item[0])
@@ -218,5 +222,6 @@ class TransactionCountTest(BaseTest):
             bin_end = (expected[0] + bin_width) // THOUSAND2K
             expected_count = expected[1]
             expected_bin_range = f"£{bin_start}k - £{bin_end}k"
+
             self.assertEqual(expected_bin_range, actual["bin_range"])
-            self.assertEqual(expected_count, actual["count"])
+            self.assertEqual(expected_count, actual["bin_size"])

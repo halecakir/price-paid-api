@@ -1,7 +1,8 @@
 import math
 
 from common.utils import from_year_month_to_datetime
-from django.db.models import Avg, CharField, Count, F, Max, Value, Window
+from django.db.models import (Avg, CharField, Count, F, IntegerField, Max, Sum,
+                              Value, Window)
 from django.db.models.functions import (Concat, ExtractMonth, ExtractYear,
                                         Floor, Ntile)
 from django_cte import With
@@ -254,16 +255,37 @@ class PropertyTransactionCountList(generics.ListAPIView):
         else:  # if there is only one item in queryset
             bin_width = 1
 
-        bins_cte = With(
+        gt_count = queryset.filter(price__gt=max_price).count()
+
+        lte_max_price = (
             queryset.annotate(bin_floor=Floor(F("price") / bin_width) * bin_width)
             .values("bin_floor")
-            .order_by("bin_floor")
+            .filter(price__lte=max_price)
             .annotate(count=Count("id"))
         )
-        queryset = (
-            bins_cte.queryset()
-            .with_cte(bins_cte)
+        gt_max_price = (
+            queryset.annotate(
+                bin_floor=Value(
+                    int(max_price / bin_width) * bin_width,
+                    output_field=IntegerField(),
+                ),
+                count=Value(gt_count, output_field=IntegerField()),
+            )
             .values("bin_floor", "count")
+            .filter(price__gt=max_price)
+        )
+
+        union_cte = With(gt_max_price.union(lte_max_price))
+
+        queryset = (
+            union_cte.queryset()
+            .with_cte(union_cte)
+            .values("bin_floor")
+            .annotate(bin_size=Sum("count"))
+            .order_by("bin_floor")
+        )
+        queryset = (
+            queryset.values("bin_floor", "bin_size")
             .annotate(
                 bin_range=Concat(
                     Value("£"),

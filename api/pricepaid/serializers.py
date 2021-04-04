@@ -34,7 +34,7 @@ class AvgPriceSerializer(serializers.Serializer):
             description="The average Flat price in March 2019 is 73776.46£.",
             value={
                 "bin_range": "F",
-                "count": 2019
+                "bin_size": 2019
             },
             request_only=False,
             response_only=True,
@@ -43,4 +43,4 @@ class AvgPriceSerializer(serializers.Serializer):
 )
 class TransactionCountSerializer(serializers.Serializer):
     bin_range = serializers.CharField(max_length=30)
-    count = serializers.IntegerField()
+    bin_size = serializers.IntegerField()
