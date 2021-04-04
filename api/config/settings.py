@@ -30,7 +30,16 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DJANGO_DEBUG")
 
+# Database connection
+POSTGRES_DB = env("POSTGRES_DB")
+POSTGRES_USER = env("POSTGRES_USER")
+POSTGRES_PASSWORD = env("POSTGRES_PASSWORD")
+POSTGRES_HOST = env("POSTGRES_HOST")
+POSTGRES_PORT = env("POSTGRES_PORT")
+
+# Production environment
 PROD_HOST = env("DJANGO_API_HOST")
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 ALLOWED_HOSTS.append(PROD_HOST)
 
@@ -102,11 +111,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "db",
-        "PORT": 5432,
+        "NAME": POSTGRES_DB,
+        "USER": POSTGRES_USER,
+        "PASSWORD": POSTGRES_PASSWORD,
+        "HOST": POSTGRES_HOST,
+        "PORT": POSTGRES_PORT,
     }
 }
 

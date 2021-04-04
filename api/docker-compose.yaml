@@ -13,15 +13,20 @@ services:
     environment:
       - DJANGO_API_HOST=${DJANGO_API_HOST}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_HOST=db
       - DJANGO_DEBUG=${DJANGO_DEBUG}
   db:
     image: postgres:11
     ports:
-      - 5432:5432
+      - ${POSTGRES_PORT}:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_sDB=${POSTGRES_DB}
+      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_INITDB_ARGS="--encoding=UTF-8"
