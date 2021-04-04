@@ -3,14 +3,15 @@ version: '3.8'
 services:
   web:
     build: .
-    command: gunicorn config.wsgi -b 0.0.0.0:5000
+    command: gunicorn config.wsgi -b 0.0.0.0:8000
     volumes:
       - .:/code
     ports:
-      - 5000:5000
+      - ${DJANGO_API_PORT}:8000
     depends_on:
       - db
     environment:
+      - DJANGO_API_HOST=${DJANGO_API_HOST}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_DEBUG=${DJANGO_DEBUG}
   db:
