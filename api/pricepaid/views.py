@@ -1,35 +1,30 @@
+import math
+
 from common.utils import from_year_month_to_datetime
 from django.db.models import Avg, CharField, Count, F, Max, Value, Window
-from django.db.models.functions import (
-    Concat,
-    ExtractMonth,
-    ExtractYear,
-    Floor,
-    Ntile,
-    Round,
-)
+from django.db.models.functions import (Concat, ExtractMonth, ExtractYear,
+                                        Floor, Ntile)
 from django_cte import With
-import rest_framework
-from rest_framework import generics
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
+                                   extend_schema, extend_schema_serializer,
+                                   inline_serializer)
+from rest_framework import generics, serializers
 
 from .models import Property
 from .serializers import AvgPriceSerializer, TransactionCountSerializer
 
-from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiParameter,
-    OpenApiExample,
-    extend_schema_serializer,
-    inline_serializer,
-)
-from drf_spectacular.types import OpenApiTypes
-from rest_framework import serializers
-
-
+# Bin count is not constant, it is adaptable.
 MAX_BIN_COUNT = 8
-DECIMAL_PLACES = 100
+# Zeros (i.e. masks) the last DECIMAL_PLACES digits of bin_width
+# to show more clear bin seperations.
+DECIMAL_PLACES = 2
+# Calculate bin_widht according to significant property prices.
+# (max_price - min_price)/bin_count produces very bad histograms.
 LOWER_OUTLIER_BOUNDARY = 0.05
 UPPER_OUTLIER_BOUNDARY = 0.95
+# To represent numbers in packed kilo metric.
+THOUSAND2K = 1000
 
 
 @extend_schema(
@@ -192,7 +187,7 @@ class PropertyAveragePriceList(generics.ListAPIView):
         ),
     ],
     responses={
-        200: AvgPriceSerializer,
+        200: TransactionCountSerializer,
         400: extend_schema_serializer(
             many=False,
             examples=[
@@ -228,9 +223,9 @@ class PropertyTransactionCountList(generics.ListAPIView):
             return queryset.none()
 
         queryset_count = queryset.count()
-        
-        normal_range_start = int(LOWER_OUTLIER_BOUNDARY * queryset_count)
-        normal_range_end = int(UPPER_OUTLIER_BOUNDARY * queryset_count)
+
+        normal_range_start = math.ceil(LOWER_OUTLIER_BOUNDARY * queryset_count)
+        normal_range_end = math.ceil(UPPER_OUTLIER_BOUNDARY * queryset_count)
 
         quartiles_cte = With(
             queryset.annotate(
@@ -249,21 +244,19 @@ class PropertyTransactionCountList(generics.ListAPIView):
             .order_by("price_quartile")
         )
 
-        # return empty queryset if there is no interquartile values.
-        if len(iqr) != 2:
-            return queryset.none()
-
-        min_price = iqr[0]["quartile_break"]
-        max_price = iqr[1]["quartile_break"]
-        bin_width = (max_price - min_price) / (MAX_BIN_COUNT - 1)
-        bin_width = (
-            int(bin_width / DECIMAL_PLACES) * DECIMAL_PLACES
-        )  # truncate to nearest decimal places
+        if len(iqr) == 2:
+            min_price = iqr[0]["quartile_break"]
+            max_price = iqr[1]["quartile_break"]
+            bin_width = (max_price - min_price) / (MAX_BIN_COUNT - 1)
+            mask_digit = pow(10, DECIMAL_PLACES)
+            bin_width = math.ceil(bin_width / mask_digit) * mask_digit
+            bin_width = 1 if bin_width == 0 else bin_width  # if max_price == min_price
+        else:  # if there is only one item in queryset
+            bin_width = 1
 
         bins_cte = With(
             queryset.annotate(bin_floor=Floor(F("price") / bin_width) * bin_width)
             .values("bin_floor")
-            .filter(price__gte=min_price, price__lte=max_price)
             .order_by("bin_floor")
             .annotate(count=Count("id"))
         )
@@ -274,11 +267,11 @@ class PropertyTransactionCountList(generics.ListAPIView):
             .annotate(
                 bin_range=Concat(
                     Value("£"),
-                    Round(F("bin_floor") / 1000),
+                    Floor(F("bin_floor") / THOUSAND2K),
                     Value("k"),
                     Value(" - "),
                     Value("£"),
-                    Round((F("bin_floor") + bin_width) / 1000),
+                    Floor((F("bin_floor") + bin_width) / THOUSAND2K),
                     Value("k"),
                     output_field=CharField(),
                 )
@@ -287,5 +280,3 @@ class PropertyTransactionCountList(generics.ListAPIView):
         )
 
         return queryset
-
-
