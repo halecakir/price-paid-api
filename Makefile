@@ -65,14 +65,17 @@ create-db: up
 populate-data: data/price_paid.csv venv/bin/activate create-db  
 	@echo -e "\e[0;32mINFO     Populating database...\e[0m"
 	@. $(VENV) && python3 scripts/populate_db.py --price-paid-data="./data/$(PRICE_PAID_FILE)" \
-												--db-table-name=$(DB_TABLE_NAME) \
-												--db-name=$(POSTGRES_DB) \
-												--db-user=$(POSTGRES_USER) \
-												--db-pass=$(POSTGRES_PASSWORD) \
-												--db-host=$(POSTGRES_HOST)
+												 --db-table-name=$(DB_TABLE_NAME) \
+												 --db-name=$(POSTGRES_DB) \
+												 --db-user=$(POSTGRES_USER) \
+												 --db-pass=$(POSTGRES_PASSWORD) \
+												 --db-host=$(POSTGRES_HOST)
 
 
-#TODO: test services
+.PHONY: test
+test:  up
+	@echo -e "\e[0;32mINFO     Testing REST endpoints...\e[0m"
+	@cd api && docker-compose exec web python manage.py test
 
 .PHONY: all
 all:  populate-data
