@@ -55,8 +55,8 @@ All the details are documented in OpenAPI Specification. This rest API exposes b
 #### Demo Server
 This REST API is hosted on the AWS EC2 server. I did not implemented authentication & authorization related modules, so everyone can consume REST API.
 
-BaseURL : http://3.126.19.226:9000/
-I recommend you to check out swagger page : http://3.126.19.226:9000/api/schema/swagger-ui
+BaseURL : http://3.126.19.226:8000/
+I recommend you to check out swagger page : http://3.126.19.226:8000/api/schema/swagger-ui
 There is examples in swagger page, you can easily consume the rest api.
 
 #### Simple Colab Client
