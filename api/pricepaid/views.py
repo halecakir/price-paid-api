@@ -15,7 +15,7 @@ from rest_framework import generics, serializers
 from .models import Property
 from .serializers import AvgPriceSerializer, TransactionCountSerializer
 
-# Bin count is not constant, it is adaptable.
+# Bin count is not constant.
 MAX_BIN_COUNT = 8
 # Zeros (i.e. masks) the last DECIMAL_PLACES digits of bin_width
 # to show more clear bin seperations.
